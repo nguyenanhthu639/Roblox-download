@@ -1,7 +1,7 @@
-// CẤU HÌNH GITHUB
-const GITHUB_USERNAME = "nguyenanhthu639"; // Thay bằng username GitHub của bạn
-const GITHUB_REPO = "Roblox-download";   // Tên repository
-const GITHUB_TOKEN = "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";   // Thay bằng token mới của bạn
+// CẤU HÌNH GITHUB (KIỂM TRA LẠI THÔNG TIN)
+const GITHUB_USERNAME = "nguyenanhthu639"; // Đảm bảo đúng username GitHub
+const GITHUB_REPO = "Roblox-download"; // Đảm bảo repository tồn tại
+const GITHUB_TOKEN = "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"; // Token mới có quyền repo
 const GITHUB_API = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/games.json`;
 
 // BIẾN TOÀN CỤC
@@ -13,50 +13,41 @@ async function init() {
   renderGames();
 }
 
-// 2. HÀM TẢI DỮ LIỆU TỪ GITHUB
+// 2. HÀM TẢI DỮ LIỆU - ĐÃ FIX 404
 async function loadGames() {
   try {
     const response = await fetch(GITHUB_API, {
-      headers: { 
+      headers: {
         'Authorization': `Bearer ${GITHUB_TOKEN}`,
         'Accept': 'application/vnd.github.v3+json'
       }
     });
-    
+
     if (response.ok) {
       const data = await response.json();
       currentGames = JSON.parse(atob(data.content));
+    } else if (response.status === 404) {
+      console.log("File không tồn tại, khởi tạo dữ liệu mới");
+      currentGames = { 
+        "all": [], 
+        "phổ biến": [], 
+        "mới nhất": [] 
+      };
+      await createInitialFile(); // Tạo file lần đầu
     } else {
-      const errorData = await response.json().catch(() => null);
-      let errorMessage = `Lỗi khi tải dữ liệu: ${response.status}`;
-      if (errorData && errorData.message) {
-        errorMessage += ` - ${errorData.message}`;
-      }
-      throw new Error(errorMessage);
+      throw new Error(`Lỗi ${response.status}: ${response.statusText}`);
     }
   } catch (error) {
     console.error("Lỗi tải dữ liệu:", error);
+    alert("Không thể tải dữ liệu: " + error.message);
     currentGames = { "all": [], "phổ biến": [], "mới nhất": [] };
-    alert(error.message);
   }
 }
 
-// 3. HÀM LƯU DỮ LIỆU LÊN GITHUB
-async function saveGames() {
+// 3. HÀM TẠO FILE LẦN ĐẦU - FIX 404
+async function createInitialFile() {
   try {
-    // Lấy SHA file hiện tại
-    const getRes = await fetch(GITHUB_API, {
-      headers: { 
-        'Authorization': `Bearer ${GITHUB_TOKEN}`,
-        'Accept': 'application/vnd.github.v3+json'
-      }
-    });
-    const sha = getRes.ok ? (await getRes.json()).sha : null;
-
-    // Chuẩn bị dữ liệu
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(currentGames, null, 2))));
-    
-    // Gửi lên GitHub
+    const content = btoa(JSON.stringify(currentGames));
     const response = await fetch(GITHUB_API, {
       method: 'PUT',
       headers: {
@@ -65,67 +56,116 @@ async function saveGames() {
         'Accept': 'application/vnd.github.v3+json'
       },
       body: JSON.stringify({
-        message: `Cập nhật lúc ${new Date().toLocaleString()}`,
-        content,
-        sha
+        message: "Khởi tạo file games.json",
+        content: content
       })
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      let errorMessage = `Lỗi khi lưu dữ liệu: ${response.status}`;
-      if (errorData && errorData.message) {
-        errorMessage += ` - ${errorData.message}`;
-      }
-      throw new Error(errorMessage);
+      throw new Error(`Lỗi tạo file: ${response.status}`);
     }
-    
+    console.log("Đã tạo file games.json thành công!");
+  } catch (error) {
+    console.error("Lỗi khi tạo file:", error);
+    throw error;
+  }
+}
+
+// 4. HÀM LƯU DỮ LIỆU - ĐÃ FIX 404
+async function saveGames() {
+  try {
+    // 1. Lấy SHA file hiện tại (nếu có)
+    let sha = null;
+    try {
+      const getRes = await fetch(GITHUB_API, {
+        headers: {
+          'Authorization': `Bearer ${GITHUB_TOKEN}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+      if (getRes.ok) {
+        sha = (await getRes.json()).sha;
+      }
+    } catch (e) {
+      console.log("Chưa có file, sẽ tạo mới");
+    }
+
+    // 2. Chuẩn bị nội dung
+    const content = btoa(unescape(encodeURIComponent(
+      JSON.stringify(currentGames, null, 2)
+    )));
+
+    // 3. Gửi request lưu dữ liệu
+    const response = await fetch(GITHUB_API, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${GITHUB_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/vnd.github.v3+json'
+      },
+      body: JSON.stringify({
+        message: `Cập nhật lúc ${new Date().toISOString()}`,
+        content: content,
+        sha: sha // null nếu là file mới
+      })
+    });
+
+    // 4. Xử lý kết quả
+    if (!response.ok) {
+      // Nếu lỗi 404 do file chưa tồn tại
+      if (response.status === 404) {
+        return await createInitialFile();
+      }
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Lỗi không xác định");
+    }
+
+    console.log("Lưu dữ liệu thành công!");
     return true;
   } catch (error) {
     console.error("Lỗi lưu dữ liệu:", error);
-    alert(error.message);
+    alert("Lỗi khi lưu: " + error.message);
     return false;
   }
 }
 
-// 4. HÀM THÊM GAME MỚI
+// 5. HÀM THÊM GAME MỚI
 async function addGame(gameData) {
+  // Kiểm tra và khởi tạo tab nếu chưa có
   if (!currentGames[gameData.tab]) {
     currentGames[gameData.tab] = [];
   }
-  
-  // Thêm vào tab cụ thể
+
+  // Thêm ID tự động
+  gameData.id = Date.now();
+
+  // Thêm vào các danh sách
   currentGames[gameData.tab].push(gameData);
-  
-  // Thêm vào tab 'all'
   currentGames.all.push(gameData);
-  
-  // Đồng bộ lên GitHub
+
+  // Lưu lên GitHub
   const success = await saveGames();
-  
   if (success) {
-    // Cập nhật giao diện
     renderGames();
+    alert("Đã thêm game thành công!");
   }
 }
 
-// 5. HÀM HIỂN THỊ GAME
+// 6. HÀM HIỂN THỊ
 function renderGames() {
   const container = document.getElementById('games-container');
   if (!container) return;
-  
-  container.innerHTML = '';
-  
-  currentGames.all.forEach(game => {
-    container.innerHTML += `
-      <div class="game-card">
-        <h3>${game.title}</h3>
-        <p>${game.description}</p>
-        <a href="${game.link}" target="_blank">Tải về</a>
-      </div>
-    `;
-  });
+
+  container.innerHTML = currentGames.all.length === 0
+    ? '<div class="empty-state">Chưa có game nào</div>'
+    : currentGames.all.map(game => `
+        <div class="game-card">
+          <h3>${game.title}</h3>
+          <p>${game.description}</p>
+          <a href="${game.link}" target="_blank">Tải về</a>
+        </div>
+      `).join('');
 }
 
-// KHỞI CHẠY
+// KHỞI CHẠY ỨNG DỤNG
 document.addEventListener('DOMContentLoaded', init);
