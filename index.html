@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ROBLOX GAME MANAGER</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            background: #1a1a2e;
+            color: white;
+            padding: 20px;
+            min-height: 100vh;
+            touch-action: manipulation;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        h1 {
+            background: linear-gradient(90deg, #00dbde, #fc00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 10px 0 20px;
+            text-align: center;
+            font-size: 1.8rem;
+        }
+        .tab-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            scrollbar-width: none;
+        }
+        .tab-container::-webkit-scrollbar {
+            display: none;
+        }
+        .tab {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            cursor: pointer;
+            white-space: nowrap;
+            user-select: none;
+        }
+        .tab.active {
+            background: linear-gradient(45deg, #00dbde, #fc00ff);
+            font-weight: bold;
+        }
+        .games-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .game-card {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            position: relative;
+        }
+        .game-card h3 {
+            margin-bottom: 8px;
+            color: #00dbde;
+        }
+        .game-card p {
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+        .game-card a {
+            color: #fc00ff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .delete-game {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #ff6b6b;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .add-game-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(45deg, #00dbde, #fc00ff);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            z-index: 100;
+            border: none;
+            color: white;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .modal-content {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            border-radius: 5px;
+        }
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #00dbde, #fc00ff);
+            color: white;
+        }
+        .empty-state {
+            text-align: center;
+            margin-top: 50px;
+            color: rgba(255,255,255,0.5);
+        }
+        .error-message {
+            color: #ff6b6b;
+            font-size: 0.8rem;
+            margin-top: 5px;
+            display: none;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .config-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+        }
+        .sync-btn {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>QUẢN LÝ GAME ROBLOX</h1>
+        
+        <div class="tab-container" id="tabContainer">
+            <div class="tab active" data-tab="all">Tất cả</div>
+            <!-- Các tab sẽ được thêm động ở đây -->
+        </div>
+        
+        <div class="games-container" id="gamesContainer">
+            <!-- Nội dung game sẽ được thêm động ở đây -->
+        </div>
+        
+        <div class="empty-state" id="emptyState">
+            Chưa có game nào. Hãy thêm game mới!
+        </div>
+    </div>
+    
+    <button class="add-game-btn" id="addGameBtn">+</button>
+    <button class="sync-btn" id="syncBtn" title="Đồng bộ với GitHub">↻</button>
+    <button class="config-btn" id="configBtn" title="Cấu hình">⚙</button>
+    
+    <!-- Modal thêm game -->
+    <div class="modal" id="addGameModal">
+        <div class="modal-content">
+            <h2>Thêm Game Mới</h2>
+            <div class="form-group">
+                <label for="gameTitle">Tên Game</label>
+                <input type="text" id="gameTitle" required>
+                <div class="error-message" id="titleError">Vui lòng nhập tên game</div>
+            </div>
+            <div class="form-group">
+                <label for="gameDescription">Mô tả</label>
+                <textarea id="gameDescription" rows="3" required></textarea>
+                <div class="error-message" id="descError">Vui lòng nhập mô tả</div>
+            </div>
+            <div class="form-group">
+                <label for="gameLink">Link tải</label>
+                <input type="url" id="gameLink" required>
+                <div class="error-message" id="linkError">Vui lòng nhập URL hợp lệ (bắt
+                đầu bằng http:// hoặc https://)</div>
+            </div>
+            <div class="form-group">
+                <label for="gameTab">Tab</label>
+                <select id="gameTab">
+                    <!-- Các tab sẽ được thêm động ở đây -->
+                </select>
+            </div>
+            <div class="form-actions">
+                <button class="btn" id="cancelBtn">Hủy</button>
+                <button class="btn btn-primary" id="saveGameBtn">
+                    <span id="saveBtnText">Lưu</span>
+                    <span class="loading" id="saveLoading" style="display: none;"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal cấu hình GitHub -->
+    <div class="modal" id="configModal">
+        <div class="modal-content">
+            <h2>Cấu Hình GitHub</h2>
+            <div class="form-group">
+                <label for="githubUsername">Tên người dùng GitHub</label>
+                <input type="text" id="githubUsername" placeholder="vd: sdrake5699">
+            </div>
+            <div class="form-group">
+                <label for="githubRepo">Tên repository</label>
+                <input type="text" id="githubRepo" placeholder="vd: Roblox-download">
+            </div>
+            <div class="form-group">
+                <label for="githubToken">GitHub Token</label>
+                <input type="password" id="githubToken" placeholder="Token có quyền repo">
+                <p style="font-size: 0.8rem; margin-top: 5px; color: #aaa;">
+                    <a href="https://github.com/settings/tokens" target="_blank" style="color: #fc00ff;">Tạo token mới tại đây</a> (cần quyền "repo")
+                </p>
+            </div>
+            <div class="form-group">
+                <label for="githubFilePath">Đường dẫn file (tùy chọn)</label>
+                <input type="text" id="githubFilePath" placeholder="vd: data/games.json">
+                <p style="font-size: 0.8rem; margin-top: 5px; color: #aaa;">
+                    Mặc định: games.json trong thư mục gốc
+                </p>
+            </div>
+            <div class="form-actions">
+                <button class="btn" id="cancelConfigBtn">Hủy</button>
+                <button class="btn btn-primary" id="saveConfigBtn">
+                    <span id="saveConfigBtnText">Lưu Cấu Hình</span>
+                    <span class="loading" id="saveConfigLoading" style="display: none;"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dữ liệu ứng dụng
+        let currentGames = {
+            "all": []
+        };
+        let currentTab = "all";
+        let tabs = ["all"];
+        let githubConfig = {
+            USERNAME: "",
+            REPO: "",
+            TOKEN: "",
+            FILE_PATH: "games.json",
+            get API_URL() {
+                return `https://api.github.com/repos/${this.USERNAME}/${this.REPO}/contents/${this.FILE_PATH}`;
+            }
+        };
+
+        // DOM Elements
+        const tabContainer = document.getElementById('tabContainer');
+        const gamesContainer = document.getElementById('gamesContainer');
+        const emptyState = document.getElementById('emptyState');
+        const addGameBtn = document.getElementById('addGameBtn');
+        const syncBtn = document.getElementById('syncBtn');
+        const configBtn = document.getElementById('configBtn');
+        const addGameModal = document.getElementById('addGameModal');
+        const configModal = document.getElementById('configModal');
+        const gameTabSelect = document.getElementById('gameTab');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const saveGameBtn = document.getElementById('saveGameBtn');
+        const cancelConfigBtn = document.getElementById('cancelConfigBtn');
+        const saveConfigBtn = document.getElementById('saveConfigBtn');
+
+        // Khởi tạo ứng dụng
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Load cấu hình từ localStorage
+            loadConfig();
+            
+            // Kiểm tra cấu hình và khởi tạo
+            if (githubConfig.USERNAME && githubConfig.REPO && githubConfig.TOKEN) {
+                await initializeApp();
+            } else {
+                // Hiển thị modal cấu hình nếu chưa có
+                configModal.style.display = 'flex';
+            }
+            
+            setupEventListeners();
+        });
+
+        // Load cấu hình từ localStorage
+        function loadConfig() {
+            const savedConfig = localStorage.getItem('githubConfig');
+            if (savedConfig) {
+                githubConfig = JSON.parse(savedConfig);
+                // Điền giá trị vào form cấu hình
+                document.getElementById('githubUsername').value = githubConfig.USERNAME || '';
+                document.getElementById('githubRepo').value = githubConfig.REPO || '';
+                document.getElementById('githubToken').value = githubConfig.TOKEN || '';
+                document.getElementById('githubFilePath').value = githubConfig.FILE_PATH || 'games.json';
+            }
+        }
+
+        // Khởi tạo ứng dụng
+        async function initializeApp() {
+            const success = await loadGames();
+            if (success) {
+                renderTabs();
+                renderGames();
+            }
+        }
+
+        // Hàm tải dữ liệu từ GitHub
+        async function loadGames() {
+            try {
+                if (!githubConfig.USERNAME || !githubConfig.REPO || !githubConfig.TOKEN) {
+                    throw new Error("Chưa cấu hình GitHub");
+                }
+
+                showLoading(true, "syncBtn");
+                
+                const response = await fetch(githubConfig.API_URL, {
+                    headers: {
+                        'Authorization': `Bearer ${githubConfig.TOKEN}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => null);
+                    let errorMessage = `Lỗi khi tải dữ liệu: ${response.status}`;
+                    if (errorData && errorData.message) {
+                        errorMessage += ` - ${errorData.message}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                const data = await response.json();
+                currentGames = JSON.parse(atob(data.content));
+                updateTabsList();
+                return true;
+            } catch (error) {
+                console.error("Lỗi tải dữ liệu:", error);
+                alert(error.message);
+                return false;
+            } finally {
+                showLoading(false, "syncBtn");
+            }
+        }
+
+        // Hàm lưu dữ liệu lên GitHub
+        async function saveGames() {
+            try {
+                if (!githubConfig.USERNAME || !githubConfig.REPO || !githubConfig.TOKEN) {
+                    throw new Error("Chưa cấu hình GitHub");
+                }
+
+                showLoading(true, "saveGameBtn");
+                
+                // 1. Lấy SHA file hiện tại (nếu có)
+                let sha = null;
+                try {
+                    const getRes = await fetch(githubConfig.API_URL, {
+                        headers: { 
+                            'Authorization': `Bearer ${githubConfig.TOKEN}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    if (getRes.ok) {
+                        sha = (await getRes.json()).sha;
+                    }
+                } catch (e) {
+                    console.log("File chưa tồn tại, sẽ tạo mới");
+                }
+                
+                // 2. Chuẩn bị dữ liệu
+                const content = btoa(unescape(encodeURIComponent(
+                    JSON.stringify(currentGames, null, 2)
+                )));
+                
+                // 3. Gửi lên GitHub
+                const response = await fetch(githubConfig.API_URL, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${githubConfig.TOKEN}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/vnd.github.v3+json'
+                    },
+                    body: JSON.stringify({
+                        message: `Cập nhật game lúc ${new Date().toLocaleString()}`,
+                        content,
+                        sha
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => null);
+                    let errorMessage = `Lỗi khi lưu dữ liệu: ${response.status}`;
+                    if (errorData && errorData.message) {
+                        errorMessage += ` - ${errorData.message}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                alert("Đã lưu dữ liệu lên GitHub thành công!");
+                return true;
+            } catch (error) {
+                console.error("Lỗi lưu dữ liệu:", error);
+                alert(error.message);
+                return false;
+            } finally {
+                showLoading(false, "saveGameBtn");
+            }
+        }
+
+        // Hiển thị/ẩn loading
+        function showLoading(show, elementId = null) {
+            if (elementId) {
+                const btn = document.getElementById(elementId);
+                const loading = btn.querySelector(".loading");
+                
+                if (show) {
+                    btn.disabled = true;
+                    if (loading) loading.style.display = 'inline-block';
+                } else {
+                    btn.disabled = false;
+                    if (loading) loading.style.display = 'none';
+                }
+            }
+        }
+
+        // Cập nhật danh sách tab
+        function updateTabsList() {
+            tabs = ["all", ...Object.keys(currentGames).filter(tab => tab !== "all")];
+        }
+
+        // Render các tab
+        function renderTabs() {
+            // Xóa các tab cũ (trừ tab "Tất cả")
+            while (tabContainer.children.length > 1) {
+                tabContainer.removeChild(tabContainer.lastChild);
+            }
+            
+            // Thêm tab mới
+            tabs.filter(tab => tab !== "all").forEach(tab => {
+                const tabElement = document.createElement('div');
+                tabElement.className = 'tab';
+                tabElement.dataset.tab = tab;
+                tabElement.textContent = tab;
+                tabElement.addEventListener('click', () => switchTab(tab));
+                tabContainer.appendChild(tabElement);
+            });
+            
+            // Cập nhật select tab trong modal
+            gameTabSelect.innerHTML = '';
+            tabs.filter(tab => tab !== "all").forEach(tab => {
+                const option = document.createElement('option');
+                option.value = tab;
+                option.textContent = tab;
+                gameTabSelect.appendChild(option);
+            });
+            
+            // Thêm option mặc định nếu chưa có tab
+            if (gameTabSelect.options.length === 0) {
+                const option = document.createElement('option');
+                option.value = "default";
+                option.textContent = "Mặc định";
+                gameTabSelect.appendChild(option);
+            }
+        }
+
+        // Chuyển tab
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.tab === tab);
+            });
+            renderGames();
+        }
+
+        // Render danh sách game
+        function renderGames() {
+            gamesContainer.innerHTML = '';
+            
+            const gamesToShow = currentTab === 'all' 
+                ? currentGames.all 
+                : (currentGames[currentTab] || []);
+            
+            if (gamesToShow.length === 0) {
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            gamesToShow.forEach((game, index) => {
+                const gameCard = document.createElement('div');
+                gameCard.className = 'game-card';
+                gameCard.innerHTML = `
+                    <span class="delete-game" data-id="${game.id}">×</span>
+                    <h3>${game.title}</h3>
+                    <p>${game.description}</p>
+                    <p><a href="${game.link}" target="_blank">Tải về</a></p>
+                    ${game.customContent ? `<p>${game.customContent}</p>` : ''}
+                `;
+                gamesContainer.appendChild(gameCard);
+            });
+            
+            // Thêm sự kiện xóa game
+            document.querySelectorAll('.delete-game').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    if (confirm("Bạn chắc chắn muốn xóa game này?")) {
+                        const gameId = parseInt(e.target.dataset.id);
+                        await deleteGame(gameId);
+                    }
+                });
+            });
+        }
+
+        // Thêm game mới
+        async function addNewGame(gameData) {
+            if (!gameData.tab || gameData.tab === "all") {
+                gameData.tab = tabs.length > 1 ? tabs[1] : "default";
+            }
+            
+            // Thêm vào tab cụ thể
+            if (!currentGames[gameData.tab]) {
+                currentGames[gameData.tab] = [];
+            }
+            currentGames[gameData.tab].push(gameData);
+            
+            // Thêm vào tab 'all'
+            currentGames.all.push(gameData);
+            
+            // Lưu lên GitHub
+            const success = await saveGames();
+            if (success) {
+                renderGames();
+                closeModal();
+            }
+        }
+
+        // Xóa game
+        async function deleteGame(gameId) {
+            // Xóa trong tất cả các tab
+            for (const tab in currentGames) {
+                currentGames[tab] = currentGames[tab].filter(game => game.id !== gameId);
+            }
+            
+            // Lưu lên GitHub
+            const success = await saveGames();
+            if (success) {
+                renderGames();
+            }
+        }
+
+        // Mở modal thêm game
+        function openModal() {
+            addGameModal.style.display = 'flex';
+            document.getElementById('gameTitle').focus();
+        }
+
+        // Đóng modal thêm game
+        function closeModal() {
+            addGameModal.style.display = 'none';
+            document.getElementById('gameTitle').value = '';
+            document.getElementById('gameDescription').value = '';
+            document.getElementById('gameLink').value = '';
+            document.querySelectorAll('.error-message').forEach(el => {
+                el.style.display = 'none';
+            });
+        }
+
+        // Mở modal cấu hình
+        function openConfigModal() {
+            configModal.style.display = 'flex';
+        }
+
+        // Đóng modal cấu hình
+        function closeConfigModal() {
+            configModal.style.display = 'none';
+        }
+
+        // Kiểm tra URL hợp lệ
+        function isValidUrl(url) {
+            try {
+                new URL(url);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // Hiển thị lỗi
+        function showError(elementId, message) {
+            const errorElement = document.getElementById(elementId);
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+
+        // Ẩn lỗi
+        function hideError(elementId) {
+            document.getElementById(elementId).style.display = 'none';
+        }
+
+        // Thiết lập event listeners
+        function setupEventListeners() {
+            // Nút thêm game
+            addGameBtn.addEventListener('click', openModal);
+            
+            // Nút đồng bộ
+            syncBtn.addEventListener('click', async () => {
+                await loadGames();
+            });
+            
+            // Nút cấu hình
+            configBtn.addEventListener('click', openConfigModal);
+            
+            // Nút hủy trong modal thêm game
+            cancelBtn.addEventListener('click', closeModal);
+            
+            // Nút lưu trong modal thêm game
+            saveGameBtn.addEventListener('click', async () => {
+                const title = document.getElementById('gameTitle').value.trim();
+                const description = document.getElementById('gameDescription').value.trim();
+                const link = document.getElementById('gameLink').value.trim();
+                const tab = document.getElementById('gameTab').value;
+                
+                // Kiểm tra dữ liệu
+                let isValid = true;
+                
+                if (!title) {
+                    showError('titleError', 'Vui lòng nhập tên game');
+                    isValid = false;
+                } else {
+                    hideError('titleError');
+                }
+                
+                if (!description) {
+                    showError('descError', 'Vui lòng nhập mô tả');
+                    isValid = false;
+                } else {
+                    hideError('descError');
+                }
+                
+                if (!link || !isValidUrl(link)) {
+                    showError('linkError', 'Vui lòng nhập URL hợp lệ (bắt đầu bằng http:// hoặc https://)');
+                    isValid = false;
+                } else {
+                    hideError('linkError');
+                }
+                
+                if (!isValid) return;
+                
+                const gameData = {
+                    id: Date.now(),
+                    title,
+                    description,
+                    link,
+                    tab,
+                    customContent: ""
+                };
+                
+                await addNewGame(gameData);
+            });
+            
+            // Nút hủy trong modal cấu hình
+            cancelConfigBtn.addEventListener('click', closeConfigModal);
+            
+            // Nút lưu cấu hình
+            saveConfigBtn.addEventListener('click', async () => {
+                const username = document.getElementById('githubUsername').value.trim();
+                const repo = document.getElementById('githubRepo').value.trim();
+                const token = document.getElementById('githubToken').value.trim();
+                const filePath = document.getElementById('githubFilePath').value.trim() || "games.json";
+                
+                if (!username || !repo || !token) {
+                    alert("Vui lòng nhập đầy đủ thông tin GitHub");
+                    return;
+                }
+                
+                // Lưu cấu hình
+                githubConfig = {
+                    USERNAME: username,
+                    REPO: repo,
+                    TOKEN: token,
+                    FILE_PATH: filePath,
+                    get API_URL() {
+                        return `https://api.github.com/repos/${this.USERNAME}/${this.REPO}/contents/${this.FILE_PATH}`;
+                    }
+                };
+                
+                // Lưu vào localStorage
+                localStorage.setItem('githubConfig', JSON.stringify(githubConfig));
+                
+                // Đóng modal
+                closeConfigModal();
+                
+                // Khởi tạo lại ứng dụng
+                await initializeApp();
+            });
+            
+            // Chống zoom
+            document.addEventListener('gesturestart', function(e) {
+                e.preventDefault();
+            });
+        }
+    </script>
+</body>
+</html>
