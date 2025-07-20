@@ -1,7 +1,7 @@
 // CẤU HÌNH GITHUB
 const GITHUB_USERNAME = "sdrake5699"; // Thay bằng username GitHub của bạn
 const GITHUB_REPO = "Roblox-download";   // Tên repository
-const GITHUB_TOKEN = "ghp_yourtokenhere";   // Thay bằng token mới của bạn
+const GITHUB_TOKEN = "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";   // Thay bằng token mới của bạn
 const GITHUB_API = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/games.json`;
 
 // BIẾN TOÀN CỤC
